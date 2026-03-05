@@ -19,6 +19,7 @@ app.post("/signup",async(req, res) => {
     }
 });
 
+//Get user by email
 app.get("/user", async (req, res) => {
     const userEmail = req.body.emailId;
 
@@ -51,12 +52,39 @@ app.get("/feed", async(req, res) => {
     res.send(users);
   }
   catch(err){
-        res.send(400).send("Something went wrong");
+        res.status(400).send("Something went wrong");
     }
 });
 
+//Delete a user from the database
+app.delete("/user", async(req, res) => {
+ const userId = req.body.userId;
+ try{
+    const user = await User.findByIdAndDelete(userId);
+    res.send("User deleted succesfully")
+ }
+  catch(err){
+        res.status(400).send("Something went wrong");
+    }
+});
 
-connectDB()
+// Update data of the user
+app.patch("/user", async(req, res) =>{
+    const userId = req.body.userId;
+    const data = req.body;
+    try{
+        const user = await User.findByIdAndUpdate({_id: userId}, data,{
+         returnDocument:"after",
+         runValidators: true,
+        });
+        console.log(user);
+        res.send("User updated Successfully");
+    }
+     catch(err){
+        res.status(400).send("UPDATE FAILED:" + err.message);
+    }
+});  
+connectDB() 
      .then(() => {
         console.log("Database connection established..");
         app.listen(7777, () => {
