@@ -4,31 +4,12 @@ const app = express();
 const User = require("./models/user");
 const {validateSignUpData} = require("./utils/validation");
 const bcrypt = require('bcrypt');
-const { isPassportNumber } = require('validator');
+const cookieParser = require("cookie-parser");
+const jwt = require("jsonwebtoken");
+
 
 app.use(express.json());
-
-app.post("/login", async(req, res)=>{
-    try{
-       const{emailId, password} = req.body;
-
-       const user = await User.findOne({emialId: emailId});
-       if(!User){
-        throw new Error("Invalid credentials");
-       }
-       const isPasswordValid = await bcrypt.compare(password, user.password);
-
-       if(isPasswordValid){
-        res.send("Login Successfully!!");
-       }
-       else{
-        throw new Error("Invalid credentials");
-       }
-    }
-    catch(err){
-     res.status(400).send("ERROR : "+ err.message);
-    }
-})
+app.use(cookieParser());
 
 app.post("/signup",async(req, res) => {
    
@@ -58,6 +39,60 @@ try{
     }
 });
 
+app.post("/login", async(req, res)=>{
+    try{
+       const{emailId, password} = req.body;
+
+       const user = await User.findOne({emailId: emailId});
+       if(!User){
+        throw new Error("Invalid credentials");
+       }
+       const isPasswordValid = await bcrypt.compare(password, user.password);
+
+       if(isPasswordValid){
+        //Create a JWT Token
+        
+        const token = await jwt.sign({ _id: user._id }, "DevTinder@123");
+        console.log(token);
+        //Add the token to cookie and send the response back to the user
+
+        res.cookie("token",token);
+        res.send("Login Successfully!!");
+       }
+       else{
+        throw new Error("Invalid credentials");
+       }
+    }
+    catch(err){
+     res.status(400).send("ERROR : "+ err.message);
+    }
+})
+
+app.get("/profile", async (req, res) =>{
+  
+  try{
+  
+  const cookies = req.cookies;
+
+  const { token } = cookies;
+  if(!token){
+    throw new Error("Ivalid Token");
+  }
+  //validate my token
+  const decodedMessage = await jwt.verify(token, "DevTinder@123");
+  const { _id } = decodedMessage;
+  console.log("Logged in user is: " + _id);
+
+  const user = await User.findById(_id);
+  if(!user){
+    throw new Error("User does not exist");
+  }
+  res.send(user);
+  }catch(err){
+     res.status(400).send("ERROR : "+ err.message);
+    }
+
+});
 //Get user by email
 app.get("/user", async (req, res) => {
     const userEmail = req.body.emailId;
@@ -140,9 +175,9 @@ connectDB()
      .then(() => {
         console.log("Database connection established..");
         app.listen(7777, () => {
-         console.log("Server is Successfully lestenning on port 7777...");
+         console.log("Server is Successfully listenning on port 7777...");
         });
      })
      .catch((err) =>{
         console.log("Database cannot be connected!!");
-     });
+     });  
