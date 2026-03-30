@@ -51,16 +51,19 @@ const userSchema = mongoose.Schema(
         }
       },
     },
-    photoUrl: {
-      type: String,
-      default:
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTK-5-DUAn8F-Uj_pHNDRyprT6W7FV4WVEBtw&s",
-      validate(value) {
-        if (!validator.isURL(value)) {
-          throw new Error("Invalid photo URL:" + value);
-        }
-      },
-    },
+   photoUrl: {
+  type: String,
+  default:
+    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTK-5-DUAn8F-Uj_pHNDRyprT6W7FV4WVEBtw&s",
+  validate(value) {
+    const isValidHttpUrl = validator.isURL(value);
+    const isBase64 = value.startsWith("data:image");
+
+    if (!isValidHttpUrl && !isBase64) {
+      throw new Error("Invalid photo URL: " + value);
+    }
+  },
+},
     about: {
       type: String,
       default: "This is a default about of the user!",
@@ -80,7 +83,7 @@ userSchema.index({gender:1});
 userSchema.methods.getJWT = async function () {
   const user = this;
 
-  const token = await jwt.sign({ _id: user._id }, "DevTinder@123", {
+  const token = await jwt.sign({ _id: user._id }, process.env.JWT_SECRET || "DevTinder@123", {
     expiresIn: "7d",
   });
   return token;

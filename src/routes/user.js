@@ -63,6 +63,7 @@ userRouter.get("/user/connections", userAuth, async (req, res) => {
 userRouter.get("/feed", userAuth, async (req, res) => {
   try {
     const loggedInUser = req.user;
+    console.log("Feed request for user:", loggedInUser._id);
 
     const page = parseInt(req.query.page) || 1;
     let limit = parseInt(req.query.limit) || 10;
@@ -73,11 +74,15 @@ userRouter.get("/feed", userAuth, async (req, res) => {
       $or: [{ fromUserId: loggedInUser._id }, { toUserId: loggedInUser._id }],
     }).select("fromUserId  toUserId");
 
+    console.log("Connection requests found:", connectionRequests.length);
+
     const hideUsersFromFeed = new Set();
     connectionRequests.forEach((req) => {
       hideUsersFromFeed.add(req.fromUserId.toString());
       hideUsersFromFeed.add(req.toUserId.toString());
     });
+
+    console.log("Users to hide from feed:", Array.from(hideUsersFromFeed));
 
     const users = await User.find({
       $and: [
@@ -89,9 +94,27 @@ userRouter.get("/feed", userAuth, async (req, res) => {
       .skip(skip)
       .limit(limit);
 
+    console.log("Users found for feed:", users.length);
+
     res.json({ data: users });
+  } catch (err) {
+    console.error("Feed error:", err);
+    res.status(400).json({ message: err.message });
+  }
+});
+userRouter.get("/debug/users", userAuth, async (req, res) => {
+  try {
+    const totalUsers = await User.countDocuments();
+    const allUsers = await User.find().select("firstName lastName _id");
+    
+    res.json({ 
+      totalUsers, 
+      users: allUsers,
+      loggedInUser: req.user._id 
+    });
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 });
+
 module.exports = userRouter;

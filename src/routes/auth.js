@@ -49,8 +49,11 @@ authRouter.post("/login", async (req, res) => {
 
       res.cookie("token", token, {
         expires: new Date(Date.now() + 8 * 3600000),
+        httpOnly: true,
+        secure: true, // Only send over HTTPS
+        sameSite: "none", // Required for cross-domain cookies
       });
-      res.send("Login Successfully!!");
+      res.send(user);
     } else {
       throw new Error("Invalid credentials");
     }
@@ -62,6 +65,9 @@ authRouter.post("/login", async (req, res) => {
 authRouter.post("/logout", async (req, res) => {
   res.cookie("token", null,{
     expires: new Date(Date.now()),
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
   });
   res.send("Logout succesfully!!");
 });
